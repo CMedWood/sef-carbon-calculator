@@ -97,73 +97,109 @@ def ef(category, subcategory=None, state=None):
     except Exception as e:
         raise ValueError(f"Factor for {category}/{subcategory}/{state} is not numeric: {val}") from e
 
-# ------------------ INPUTS ------------------
+# =========================================================
+#                     INPUT SECTIONS
+# =========================================================
+
+# 1) Clinic profile
 st.header("1) Clinic profile")
 state = st.selectbox("State/Territory", ["NSW","QLD","VIC","SA","WA","TAS","ACT","NT"])
 fte = st.number_input("FTE staff (for intensity)", min_value=0.0, value=10.0, step=0.5)
 reporting_year = st.selectbox("Reporting year", ["2024-25","2023-24","Custom"])
 clinic_name = st.text_input("Clinic name (optional)", placeholder="e.g., WestVets Brisbane")
 
+# 2) Electricity (Scope 2)
 st.header("2) Grid Electricity (Scope 2)")
 elec_kwh = st.number_input("Grid electricity used (kWh)", min_value=0.0, step=100.0)
+st.caption("This calculator reports **location-based** Scope 2 using state factors.")
 
-st.header("3) Fuels (Scope 1)")
-petrol_L = st.number_input("Petrol (L)", min_value=0.0, step=50.0)
-diesel_L = st.number_input("Diesel (L)", min_value=0.0, step=50.0)
+# 3) Anaesthetic agents (Scope 1 fugitive)
+st.header("3) Iso - or other anaesthetic agents (Scope 1)")
+colA, colB = st.columns(2)
+with colA:
+    iso_g = st.number_input("Isoflurane (g)", min_value=0.0, step=10.0)
+    sev_g = st.number_input("Sevoflurane (g)", min_value=0.0, step=10.0)
+with colB:
+    des_g = st.number_input("Desflurane (g)", min_value=0.0, step=10.0)
+    n2o_g = st.number_input("Nitrous oxide (g)", min_value=0.0, step=10.0)
+
+# 4) Gas – stationary energy (Scope 1)
+st.header("4) Gas – stationary energy (Scope 1)")
 lpg_L = st.number_input("LPG (L)", min_value=0.0, step=10.0)
 natgas_MJ = st.number_input("Natural gas (MJ)", min_value=0.0, step=100.0)
 
-with st.expander("Advanced: Anaesthetic gases (optional, Scope 1 fugitive)"):
-    use_anaes = st.checkbox("Include anaesthetic agents", value=False)
-    iso_g = sev_g = des_g = n2o_g = 0.0
-    if use_anaes:
-        iso_g = st.number_input("Isoflurane (g)", min_value=0.0, step=10.0)
-        sev_g = st.number_input("Sevoflurane (g)", min_value=0.0, step=10.0)
-        des_g = st.number_input("Desflurane (g)", min_value=0.0, step=10.0)
-        n2o_g = st.number_input("Nitrous oxide (g)", min_value=0.0, step=10.0)
+# 5) Vehicles – fuel use (Scope 1)
+st.header("5) Vehicles – fuel use (Scope 1)")
+petrol_L = st.number_input("Petrol (L)", min_value=0.0, step=50.0)
+diesel_L = st.number_input("Diesel (L)", min_value=0.0, step=50.0)
 
-# ------------------ CALCULATIONS ------------------
+# =========================================================
+#                     CALCULATIONS
+# =========================================================
 try:
-    scope2 = elec_kwh * ef("electricity", state=state)
-    scope1_fuels = (
-        petrol_L * ef("fuel","petrol_L") +
-        diesel_L * ef("fuel","diesel_L") +
+    # Scope 2
+    scope2_elec = elec_kwh * ef("electricity", state=state)
+
+    # Scope 1 components
+    scope1_anaes = (
+        iso_g * ef("anaes","isoflurane_g") +
+        sev_g * ef("anaes","sevoflurane_g") +
+        des_g * ef("anaes","desflurane_g") +
+        n2o_g * ef("anaes","n2o_g")
+    )
+    scope1_gas = (
         lpg_L * ef("fuel","lpg_L") +
         natgas_MJ * ef("fuel","natural_gas_MJ")
     )
-    scope1_anaes = 0.0
-    if use_anaes:
-        scope1_anaes = (
-            iso_g * ef("anaes","isoflurane_g") +
-            sev_g * ef("anaes","sevoflurane_g") +
-            des_g * ef("anaes","desflurane_g") +
-            n2o_g * ef("anaes","n2o_g")
-        )
-    scope1 = scope1_fuels + scope1_anaes
-    total = scope1 + scope2
+    scope1_vehicles = (
+        petrol_L * ef("fuel","petrol_L") +
+        diesel_L * ef("fuel","diesel_L")
+    )
+    scope1_total = scope1_anaes + scope1_gas + scope1_vehicles
+
+    total = scope1_total + scope2_elec
     intensity_per_fte = total / fte if fte > 0 else 0.0
 except Exception as e:
     st.error(f"Calculation error: {e}")
     st.stop()
 
-# ------------------ RESULTS ------------------
-st.header("4) Results")
+# =========================================================
+#                     RESULTS TABLE
+# =========================================================
+st.header("6) Results")
 res = pd.DataFrame({
-    "Metric": ["Scope 1 (fuels)", "Scope 1 (anaesthetic gases)", "Scope 1 (total)", "Scope 2 (electricity)", "Total (kgCO2e)"],
-    "Value (kgCO2e)": [scope1_fuels, scope1_anaes, scope1, scope2, total]
+    "Metric": [
+        "Scope 1 – Anaesthetic agents",
+        "Scope 1 – Gas (LPG + Natural gas)",
+        "Scope 1 – Vehicles (petrol + diesel)",
+        "Scope 1 – Total",
+        "Scope 2 – Grid electricity",
+        "Total (kgCO2e)"
+    ],
+    "Value (kgCO2e)": [
+        scope1_anaes,
+        scope1_gas,
+        scope1_vehicles,
+        scope1_total,
+        scope2_elec,
+        total
+    ]
 })
 st.dataframe(res, use_container_width=True)
+
 st.write(f"**Intensity (kgCO2e per FTE):** {intensity_per_fte:,.2f}")
 if fte == 0:
     st.caption("Enter FTE > 0 to show intensity.")
 
-# ------------------ VISUALS ------------------
+# =========================================================
+#                     VISUAL SUMMARY
+# =========================================================
 st.subheader("Visual Summary")
 
-# PIE: % breakdown of Grid electricity, Anaesthetic agents, and Fuel
+# Pie: % breakdown of Grid electricity, Anaesthetics, Gas, Vehicles
 pie_df = pd.DataFrame({
-    "Category": ["Grid electricity", "Anaesthetic agents", "Fuel"],
-    "Emissions (kg CO2e)": [scope2, scope1_anaes, scope1_fuels],
+    "Category": ["Grid electricity", "Anaesthetic agents", "Gas (LPG + NG)", "Vehicles"],
+    "Emissions (kg CO2e)": [scope2_elec, scope1_anaes, scope1_gas, scope1_vehicles],
 })
 pie = px.pie(
     pie_df,
@@ -172,14 +208,12 @@ pie = px.pie(
     title="Emissions breakdown (%)",
     hole=0.35
 )
-# Show % labels on the pie and the absolute values in hover
 pie.update_traces(textinfo="percent+label", hovertemplate="%{label}: %{value:,.2f} kg CO₂e")
 st.plotly_chart(pie, use_container_width=True)
 
-# BAR: keep your existing by-category bar (optional tweak to align labels)
-by_cat = pie_df.rename(columns={"Category": "Metric", "Emissions (kg CO2e)": "Value (kgCO2e)"})
+# Bar: same 4 categories
 bar = px.bar(
-    by_cat,
+    pie_df.rename(columns={"Category": "Metric", "Emissions (kg CO2e)": "Value (kgCO2e)"}),
     x="Metric",
     y="Value (kgCO2e)",
     title="Emissions by Category",
@@ -188,10 +222,42 @@ bar = px.bar(
 bar.update_layout(xaxis_title="", yaxis_title="kg CO₂e")
 st.plotly_chart(bar, use_container_width=True)
 
-# ------------------ DOWNLOAD ------------------
+# =========================================================
+#                     DOWNLOAD
+# =========================================================
 st.subheader("Download your results")
-res_csv = res.to_csv(index=False)
+results_dict = {
+    "clinic_name": clinic_name,
+    "state": state,
+    "reporting_year": reporting_year,
+    "fte": fte,
+    "inputs": {
+        "elec_kwh": elec_kwh,
+        "petrol_L": petrol_L,
+        "diesel_L": diesel_L,
+        "lpg_L": lpg_L,
+        "natgas_MJ": natgas_MJ,
+        "isoflurane_g": iso_g,
+        "sevoflurane_g": sev_g,
+        "desflurane_g": des_g,
+        "n2o_g": n2o_g
+    },
+    "results_kgco2e": {
+        "scope1_anaes": scope1_anaes,
+        "scope1_gas": scope1_gas,
+        "scope1_vehicles": scope1_vehicles,
+        "scope1_total": scope1_total,
+        "scope2_electricity": scope2_elec,
+        "total": total,
+        "intensity_per_fte": intensity_per_fte
+    },
+}
+res_csv = pd.DataFrame.from_records(
+    [(k, v) for k, v in results_dict["results_kgco2e"].items()],
+    columns=["Metric","Value_kgCO2e"]
+).to_csv(index=False)
+
 st.download_button("Download results (CSV)", data=res_csv, file_name="sef_results.csv", mime="text/csv")
 
 st.divider()
-st.caption("Emission factors: DCCEEW NGA (location-based). Verify factors and units before pilot use.")
+st.caption("Emission factors: DCCEEW NGA (location-based) + peer-reviewed anaesthetic factors. Verify factors and units before pilot use.")
