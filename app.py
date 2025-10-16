@@ -104,7 +104,7 @@ fte = st.number_input("FTE staff (for intensity)", min_value=0.0, value=10.0, st
 reporting_year = st.selectbox("Reporting year", ["2024-25","2023-24","Custom"])
 clinic_name = st.text_input("Clinic name (optional)", placeholder="e.g., WestVets Brisbane")
 
-st.header("2) Electricity (Scope 2)")
+st.header("2) Grid Electricity (Scope 2)")
 elec_kwh = st.number_input("Grid electricity used (kWh)", min_value=0.0, step=100.0)
 
 st.header("3) Fuels (Scope 1)")
