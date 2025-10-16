@@ -1,0 +1,17 @@
+category,subcategory,unit,factor,state,source,source_year
+electricity,,kgCO2e/kWh,0.66,NSW,NGA Table 1 (location-based),2024
+electricity,,kgCO2e/kWh,0.71,QLD,NGA Table 1 (location-based),2024
+electricity,,kgCO2e/kWh,0.77,VIC,NGA Table 1 (location-based),2024
+electricity,,kgCO2e/kWh,0.23,SA,NGA Table 1 (location-based),2024
+electricity,,kgCO2e/kWh,0.51,WA,NGA Table 1 (location-based),2024
+electricity,,kgCO2e/kWh,0.15,TAS,NGA Table 1 (location-based),2024
+electricity,,kgCO2e/kWh,0.66,ACT,NGA Table 1 (location-based),2024
+electricity,,kgCO2e/kWh,0.56,NT,NGA Table 1 (location-based),2024
+fuel,petrol_L,kgCO2e/L,2.312604,ALL,NGA 2024 Table 9 (transport),2024
+fuel,diesel_L,kgCO2e/L,2.717826,ALL,NGA 2024 Table 9 (transport),2024
+fuel,lpg_L,kgCO2e/L,1.5982,ALL,NGA 2024 Table 9 (transport),2024
+fuel,natural_gas_MJ,kgCO2e/MJ,0.05153,ALL,NGA 2024 Table (natural gas distributed in a pipeline),2024
+anaes,isoflurane_g,kgCO2e/g,0.539,ALL,"BJA/ASA,2024-2025",2024
+anaes,sevoflurane_g,kgCO2e/g,0.144,ALL,"BJA/ASA,2024-2025",2024
+anaes,desflurane_g,kgCO2e/g,2.59,ALL,"BJA/ASA,2024-2025",2024
+anaes,n2o_g,kgCO2e/g,0.273,ALL,"IPCC AR6,2021-2023",2023
