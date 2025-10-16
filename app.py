@@ -113,15 +113,35 @@ st.header("2) Grid Electricity (Scope 2)")
 elec_kwh = st.number_input("Grid electricity used (kWh)", min_value=0.0, step=100.0)
 st.caption("This calculator reports **location-based** Scope 2 using state factors.")
 
-# 3) Anaesthetic agents (Scope 1 fugitive)
-st.header("3) Iso - or other anaesthetic agents (Scope 1)")
-colA, colB = st.columns(2)
+# 3) Anaesthetic agents (Scope 1) — inputs in mL, auto-converted to grams
+st.header("3) Anaesthetic agents (Scope 1)")
+
+# Default densities (g/mL) at ~20°C
+ISO_DENS = 1.50
+SEV_DENS = 1.52
+DES_DENS = 1.47
+
+colA, colB, colC = st.columns(3)
+
 with colA:
-    iso_g = st.number_input("Isoflurane (g)", min_value=0.0, step=10.0)
-    sev_g = st.number_input("Sevoflurane (g)", min_value=0.0, step=10.0)
+    iso_ml = st.number_input("Isoflurane (mL)", min_value=0.0, step=1.0)
+    iso_g = iso_ml * ISO_DENS
+    st.caption(f"Isoflurane mass: **{iso_g:,.2f} g** (1.50 g/mL)")
+
 with colB:
-    des_g = st.number_input("Desflurane (g)", min_value=0.0, step=10.0)
-    n2o_g = st.number_input("Nitrous oxide (g)", min_value=0.0, step=10.0)
+    sev_ml = st.number_input("Sevoflurane (mL)", min_value=0.0, step=1.0)
+    sev_g = sev_ml * SEV_DENS
+    st.caption(f"Sevoflurane mass: **{sev_g:,.2f} g** (1.52 g/mL)")
+
+with colC:
+    des_ml = st.number_input("Desflurane (mL)", min_value=0.0, step=1.0)
+    des_g = des_ml * DES_DENS
+    st.caption(f"Desflurane mass: **{des_g:,.2f} g** (1.47 g/mL)")
+
+n2o_g = st.number_input("Nitrous oxide (g)", min_value=0.0, step=10.0)
+
+# (Optional) small note for users:
+st.caption("Volatile agents are entered as liquid volumes (mL) and converted to mass (g) using default densities.")
 
 # 4) Gas – stationary energy (Scope 1)
 st.header("4) Gas – stationary energy (Scope 1)")
@@ -198,7 +218,7 @@ st.subheader("Visual Summary")
 
 # Pie: % breakdown of Grid electricity, Anaesthetics, Gas, Vehicles
 pie_df = pd.DataFrame({
-    "Category": ["Grid electricity", "Anaesthetic agents", "Gas (LPG + NG)", "Vehicles"],
+    "Category": ["Grid electricity", "Iso - other anaesthetics", "Gas (LPG + NG)", "Vehicles"],
     "Emissions (kg CO2e)": [scope2_elec, scope1_anaes, scope1_gas, scope1_vehicles],
 })
 pie = px.pie(
